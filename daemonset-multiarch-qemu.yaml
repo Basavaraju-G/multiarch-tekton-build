@@ -1,0 +1,28 @@
+﻿kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: multiarch-qemu
+  namespace: pipelines-multi-arch
+spec:
+  selector:
+    matchLabels:
+      name: multiarch-qemu
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: multiarch-qemu
+    spec:
+      containers:
+        - name: multiarch-qemu
+          image: 'quay.io/bgirriam/qemu-user-static:2.0'
+          command:
+            - /bin/sh
+            - '-c'
+            - '/register --reset --persistent yes && while :; do sleep 3600; done'
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true

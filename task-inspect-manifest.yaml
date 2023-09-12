@@ -1,0 +1,48 @@
+﻿apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: inspect-manifest
+  namespace: pipelines-multi-arch
+spec:
+  params:
+    - name: buildahVersion
+      type: string
+    - name: outputContainerImage
+      type: string
+  steps:
+    - env:
+        - name: TARGET_IMAGE
+          value: $(params.outputContainerImage)
+      image: 'quay.io/containers/buildah:$(params.buildahVersion)'
+      name: buildah
+      resources: {}
+      script: |
+        #!/bin/bash
+
+        set -Eeuo pipefail
+
+        function inspect () {
+          echo "========================================================="
+          echo " buildah manifest inspect $TARGET_IMAGE"
+          echo "========================================================="
+          echo
+
+          buildah manifest inspect $TARGET_IMAGE 
+          echo
+        }
+
+
+        inspect 
+
+        exit 0      
+      securityContext:
+        capabilities:
+          add:
+            - SYS_ADMIN
+        privileged: true
+      workingDir: /src
+  workspaces:
+    - mountPath: /src
+      name: src
+    - mountPath: /var/lib/containers
+      name: containers

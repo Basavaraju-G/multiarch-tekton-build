@@ -1,0 +1,72 @@
+﻿apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: buildah-multiarch-test
+  namespace: pipelines-multi-arch
+spec:
+  params:
+    - default:
+        - linux/x86_64
+        - linux/s390x
+        - linux/ppc64le
+      name: buildahPlatforms
+      type: array
+    - name: gitRepositoryURL
+      type: string
+    - name: outputContainerImage
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: $(params.gitRepositoryURL)
+        - name: verbose
+          value: 'false'
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          subPath: src
+          workspace: scratch
+    - name: buildah
+      params:
+        - name: buildahVersion
+          value: latest
+        - name: outputContainerImage
+          value: $(params.outputContainerImage)
+        - name: buildahPlatforms
+          value:
+            - '$(params.buildahPlatforms[*])'
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: buildah
+      workspaces:
+        - name: src
+          subPath: src
+          workspace: scratch
+        - name: containers
+          subPath: containers
+          workspace: scratch
+    - name: check-image-manifest
+      params:
+        - name: buildahVersion
+          value: latest
+        - name: outputContainerImage
+          value: $(params.outputContainerImage)
+      runAfter:
+        - buildah
+      taskRef:
+        kind: Task
+        name: inspect-manifest
+      workspaces:
+        - name: src
+          subPath: src
+          workspace: scratch
+        - name: containers
+          subPath: containers
+          workspace: scratch
+  workspaces:
+    - name: scratch
